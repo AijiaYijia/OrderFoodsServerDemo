@@ -29,12 +29,17 @@ import android.widget.Toast;
 import com.example.orderfoodsserverdemo.Common.Common;
 import com.example.orderfoodsserverdemo.Interface.ItemClickListener;
 import com.example.orderfoodsserverdemo.Model.Category;
+import com.example.orderfoodsserverdemo.Service.ListenOrder;
 import com.example.orderfoodsserverdemo.ViewHolder.MenuViewHolder;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
@@ -108,6 +113,9 @@ public class Home extends AppCompatActivity implements NavigationView.OnNavigati
         recycle_menu.setLayoutManager(layoutManager);
 
         loadMenu();
+
+        Intent service = new Intent(Home.this, ListenOrder.class);
+        startService(service);
     }
 
     private void showDialog() {
@@ -306,6 +314,23 @@ public class Home extends AppCompatActivity implements NavigationView.OnNavigati
     }
 
     private void deleteCategory(String key) {
+
+        // get all food in the category
+        DatabaseReference foods=database.getReference("Foods");
+        Query foodInCategory = foods.orderByChild("menuId").equalTo(key);
+        foodInCategory.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
+                    postSnapshot.getRef().removeValue();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+            }
+        });
 
         categories.child(key).removeValue();
         Toast.makeText(this, "Item deleted !!!", Toast.LENGTH_SHORT).show();
